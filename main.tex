@@ -10,13 +10,31 @@
 \ead{pivarski@fnal.gov}
 
 \begin{abstract}
-Exploratory data analysis tools must respond quickly to a user's questions, so that the answer to one question (e.g.\ a visualized distribution) can influence the next. In some SQL-based query systems used in industry, even very large (petabyte) datasets can be summarized on a human timescale (seconds), emplying techniques like columnar data representation, caching, indexing, and code generation/JIT-compilation. This article describes progress toward realizing such a system for HEP, focusing on the intermediate problems of optimizing data access and calculations for ``query sized'' payloads, such as a single histogram or group of histograms, rather than large reconstruction or data-skimming jobs. These techniques include direct extraction of ROOT TBranches into Numpy arrays and compilation of Python analysis functions (rather than SQL) to be executed very quickly. We will also discuss the problem of caching and actively delivering jobs to worker nodes with input data preloaded. All of these pieces of the larger solution are available as standalone GitHub repositories, and could be used in current analyses.
+Exploratory data analysis tools must respond quickly to a user's questions, so that the answer to one question (e.g.\ a visualized histogram or fit) can influence the next. In some SQL-based query systems used in industry, even very large (petabyte) datasets can be summarized on a human timescale (seconds), emplying techniques such as columnar data representation, caching, indexing, and code generation/JIT-compilation. This article describes progress toward realizing such a system for High Energy Physics (HEP), focusing on the intermediate problems of optimizing data access and calculations for ``query sized'' payloads, such as a single histogram or group of histograms, rather than large reconstruction or data-skimming jobs. These techniques include direct extraction of ROOT TBranches into Numpy arrays and compilation of Python analysis functions (rather than SQL) to be executed very quickly. We will also discuss the problem of caching and actively delivering jobs to worker nodes that have the necessary input data preloaded in cache. All of these pieces of the larger solution are available as standalone GitHub repositories, and could be used in current analyses.
 \end{abstract}
 
-\section{Introduction}
+\section{Benefits of a query service}
+
+Despite everything that's changed in computing since the first AIHENP/ACAT workshop, one aspect of today's High Energy Physics (HEP) analyses that a physicist from 27 years ago would recognize is the use of private skims. Rather than analyzing the reconstructed data directly, physicists skim it (dropping events) and slim it (dropping particle attributes), copy this summary closer to where they will be working, and then analyze the summary. The reason is performance: smaller data with fewer steps between the analyst and the data result in quicker exploratory plots, which allow the human analyst to be more engaged in the investigation. Long processing times are accepted for established, push-button procedures, but a new analysis requires creative work and interactive discovery.
+
+However, the process of obtaining this private skim can be long--- weeks or months before seeing the first plot--- and is fraught with tradeoffs. Excluding important events or (more often) attributes can be costly, and including data of unknown value only makes the process longer. Moreover, the copy uses extra resources (disk and processing), which will only get tighter as data volumes outpace computing budgets, it can effectively ``price out'' small analysis groups, and it introduces version differences 
+
+should focus on physics statistical issues, not data handling.
 
 
 
+
+\section{Optimizing for ``query sized'' payloads}
+
+\section{Objects versus tables}
+
+\section{Code transformation and compilation}
+
+\section{Distributed processing with third-party tools}
+
+\section{Advanced query language}
+
+\section{Standalone pieces and the big picture}
 
 
 \end{document}
