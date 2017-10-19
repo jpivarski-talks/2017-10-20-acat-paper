@@ -10,9 +10,10 @@
 \begin{document}
 \title{Toward real-time data query systems in HEP}
 
-\author{Jim Pivarski}
+\author{Jim Pivarski$^1$, David Lange$^1$, Thanat Jatuphattharachat$^2$}
 
-\address{Physics Department, Princeton University, Princeton, NJ 08544, USA}
+\address{$^1$ Physics Department, Princeton University, Princeton, NJ 08544, USA}
+\address{$^2$ Computer Engineering Chulalongkorn University, Krung Thep Maha Nakhon 10330, Thailand}
 
 \ead{pivarski@princeton.edu}
 
@@ -50,6 +51,7 @@ An analysis query is the smallest unit of exploratory analysis, in which the phy
 250~MHz & minimal ``for'' loop in memory (single-threaded C)
 \end{tabular}
 \end{center}
+\vspace{-0.5 cm}
 \end{table}
 
 HEP frameworks are not designed for this style of data access. Table~\ref{tab:10k} shows how four orders of magnitude in processing rate are lost to provide all the services of a full event framework (CMSSW in this example). These include creating full C++ particle objects with all attributes loaded, allocated randomly on the heap for convenient memory management, compared to a sequential, contiguous, and possibly vectorized histogram fill over a simple array. These services are essential for ``heavy'' processing tasks like event reconstruction, which touch most attributes of each particle, but are inappropriate for ``query sized'' tasks like filling a histogram. Private skims strip most of this away for lightweight processing in a physicist's personal analysis environment; there is no reason a lightweight framework could not also be provided centrally.
@@ -76,6 +78,7 @@ inner offsets & {\tt\small \textcolor{violet}{[\ 0,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \
 2$^{\mbox{\scriptsize nd}}$ attribute & {\tt\small \textcolor{darkgreen}{[\ \ \ \ \ 1,\ \ \ \ \ 2,\ \ \ \ \ 3,\ \ \ \ \ 4,\ \ \ \ \ \ \ \ \ \ \ 5,\ \ \ \ \ 6,\ \ \ \ \ \ \ \ \ \ \ \ \ 7\ \ \ \ ]}}
 \end{tabular}
 \end{center}
+\vspace{-0.5 cm}
 \end{table}
 
 Given the exploded data shown in Table~\ref{tab:exploding} and user code such as
@@ -179,16 +182,35 @@ The performance of the transformed code was studied with a simulated Drell-Yan d
 {\scriptsize \input{minted-8.tex}}
 \end{tabular}
 \end{center}
+\vspace{-0.5 cm}
 \end{table}
 
-\section{Distributed processing with third-party tools}
+\section{Distributed processing with cache}
 
+The optimizations discussed above focus on increasing single-threaded throughput, but of course the main benefit of a centralized query service is parallelization. If we attain our latency goal of no more than a second per plot and a hundred physicists are online, submitting a query every ten seconds, then each physicist would get a tenth of the whole cluster at a time.
 
+HEP analysis functions are embarrasingly parallel, which would scale linearly if data can be delivered to them efficiently. However, this depends critically on caching, since data processing is considerably faster than disk access, and caching is local. An input dataset in memory on one machine is only useful if subsequent jobs requiring that input are sent to the same machine.
 
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.7\linewidth]{distributed-layout.png}
+\end{center}
 
+\caption{\label{fig:distributed} Schematic for distributed query processing to minimize cache misses (see text).}
+\end{figure}
 
+Rather than dispatch subtasks round-robin or to the least busy compute node, we want compute nodes to pull subtasks with a preference for input data they already have in cache. Figure~\ref{fig:distributed} shows a scheme for accomplishing this, using Apache Zookeeper to advertise new subtasks and globally mark them as in progress and delete them when done. Compute nodes pull subtasks rather than having work pushed to them because only the compute nodes know which input datasets are locally in cache. Pulling work also reduces the effect of stragglers for the same reason as work-stealing. Additionally, the work-pulling algorithm should not strictly require input data to be in cache, but check for work in two rounds: the first takes only cache-local work, but if there is no cache-local work to do, compute nodes will take any work after a sub-second delay. This allows the compute nodes that can best service the request to have first dibs, but if there's too much for them to do, new compute nodes will download the input data so that the handling of a popular dataset elastically scales with demand.
+
+For the most common type of query, histogram aggregation, subtasks represent partial histograms that must be aggregated centrally. For responsiveness, we imagine storing partial histograms in a document database like MongoDB and aggregating whatever is available at regular intervals. That way, the user would see results accumulate interactively and can cancel mistaken queries. The range of supported tasks can be extended by adopting generalized aggregation with Histogrammar\cite{histogrammar}.
+
+This system was developed in draft form by one of us (Thanat)\cite{thanat}, to serve as a model for development. This draft system lacks only realistic work payloads, substituting them with random delays.
 
 \section{Standalone pieces and the big picture}
+
+
+
+
+
 
 \section*{References}
 \begin{thebibliography}{9}
@@ -198,6 +220,10 @@ The performance of the transformed code was studied with a simulated Drell-Yan d
 \bibitem{bulkio} BulkIO reference; another ACAT paper: \url{https://indico.cern.ch/event/567550/contributions/2627167/}
 
 \bibitem{ieee} accepted IEEE Big Data paper; don't have a non-arXiv reference yet: \url{https://arxiv.org/abs/1708.08319}
+
+\bibitem{histogrammar} Histogrammar \url{https://zenodo.org/record/61418}
+
+\bibitem{thanat} \url{https://github.com/JThanat/femto-mesos}
 
 \end{thebibliography}
 
