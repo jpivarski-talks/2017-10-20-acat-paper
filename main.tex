@@ -207,10 +207,18 @@ This system was developed in draft form by one of us (Thanat)\cite{thanat}, to s
 
 \section{Standalone pieces and the big picture}
 
+A centralized query service that is as fast and convenient as private skims would have a profound impact on the working habits of thousands of physicists. It doesn't represent an incremental change of existing infrastructures, and as such, needs quite a few new components to make it work.
 
+Rather than trying to introduce this system in a ``big bang,'' we are rolling out individual components, even if they tend to increase reliance on private skims in the short term. For instance, array access to ROOT data and Python code transformation/compilation can accelerate and simplify analysis using skims. We are considering ways of implementing a distributed system as a virtual ROOT file, to provide physicists with a familiar interface, even if it isn't used with the accelerated query engine. This way, we can get feedback about parts of the system before the whole system is in place. This method also encourages spin-off technologies.
 
+The following software is either available now or soon.
+\begin{itemize}
+\item Array access to ROOT data, via Numpy and {\tt TTreeReaderFast}, is scheduled for {\bf ROOT 6.14}\cite{root}. Users willing to compile ROOT may try the feature early using a custom fork\cite{root-brian}.
+\item The same interface is available now in a Python package called {\bf uproot}\cite{uproot}.
+\item The code transformation techniques described here are implemented in {\bf Arrowed}\cite{arrowed}, which accelerates functions on data in Apache Arrow\cite{arrow} format, with on-the-fly conversion from ROOT to Arrow. The purpose of targeting Arrow rather than ROOT directly is to attract contributions from Big Data projects that rely on Arrow.
+\end{itemize}
 
-
+Readers are encouraged to try out these packages and report any usability issues, as this will guide the process of developing the query system.
 
 \section*{References}
 \begin{thebibliography}{9}
@@ -224,6 +232,16 @@ This system was developed in draft form by one of us (Thanat)\cite{thanat}, to s
 \bibitem{histogrammar} Histogrammar \url{https://zenodo.org/record/61418}
 
 \bibitem{thanat} \url{https://github.com/JThanat/femto-mesos}
+
+\bibitem{root} \url{https://root.cern/}
+
+\bibitem{root-brian} \url{http://github.com/bbockelm/root/tree/root-bulkapi-fastread-v2}
+
+\bibitem{uproot} \url{https://github.com/scikit-hep/uproot}
+
+\bibitem{arrowed} \url{https://github.com/diana-hep/arrowed}
+
+\bibitem{arrow} \url{https://arrow.apache.org/}
 
 \end{thebibliography}
 
