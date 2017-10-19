@@ -1,13 +1,20 @@
 \documentclass[a4paper]{jpconf}
 \usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{minted}
+
+\xdefinecolor{darkorange}{rgb}{0.8,0.5,0}
+\definecolor{darkgreen}{rgb}{0,0.6,0}
+
 \begin{document}
 \title{Toward real-time data query systems in HEP}
 
 \author{Jim Pivarski}
 
-\address{147 N.\ Ridgeland Ave.\ Unit 3S, Oak Park, IL 60302, US}
+\address{Physics Department, Princeton University, Princeton, NJ 08544, USA}
 
-\ead{pivarski@fnal.gov}
+\ead{pivarski@princeton.edu}
 
 \begin{abstract}
 Exploratory data analysis tools must respond quickly to a user's questions, so that the answer to one question (e.g.\ a visualized histogram or fit) can influence the next. In some SQL-based query systems used in industry, even very large (petabyte) datasets can be summarized on a human timescale (seconds), employing techniques such as columnar data representation, caching, indexing, and code generation/JIT-compilation. This article describes progress toward realizing such a system for High Energy Physics (HEP), focusing on the intermediate problems of optimizing data access and calculations for ``query sized'' payloads, such as a single histogram or group of histograms, rather than large reconstruction or data-skimming jobs. These techniques include direct extraction of ROOT TBranches into Numpy arrays and compilation of Python analysis functions (rather than SQL) to be executed very quickly. We will also discuss the problem of caching and actively delivering jobs to worker nodes that have the necessary input data preloaded in cache. All of these pieces of the larger solution are available as standalone GitHub repositories, and could be used in current analyses.
@@ -15,25 +22,183 @@ Exploratory data analysis tools must respond quickly to a user's questions, so t
 
 \section{Benefits of a query service}
 
-Despite everything that's changed in computing since the first AIHENP/ACAT workshop, one aspect of today's High Energy Physics (HEP) analyses that a physicist from 27 years ago would recognize is the use of private skims. Rather than analyzing the reconstructed data directly, physicists skim it (dropping events) and slim it (dropping particle attributes), copy this summary closer to where they will be working, and then analyze the summary. The reason is performance: smaller data with fewer steps between the analyst and the data result in quicker exploratory plots, which allow the human analyst to be more engaged in the investigation. Long processing times are acceptable for established, push-button procedures, but a new analysis requires creative work and interactive discovery.
+Despite everything that's changed in computing since the first AIHENP/ACAT workshop, one aspect of today's High Energy Physics (HEP) analyses that a physicist 27 years ago would recognize is the use of private skims. Rather than analyzing the reconstructed data directly, physicists skim it (dropping events) and slim it (dropping particle attributes), copy this summary closer to where they will be working, and then analyze the summary. The reason is performance: smaller data with fewer steps between the analyst and the data result in quicker exploratory plots, which allow the human analyst to be more engaged in the investigation. Long processing times are acceptable for established, push-button procedures, but a new analysis requires creative work and interactive discovery.
 
-However, producing such a skim can take a long time--- weeks or months before seeing the first plot--- and is fraught with tradeoffs. Excluding important events or (more often) important particle attributes can be costly, and including unnecessary data only makes the process take longer and use more disk. Moreover, the copy uses extra resources (disk and processing), which will only get tighter as data volumes outpace computing budgets, it can effectively ``price out'' small analysis groups. Since it is a distinct copy, it does not benefit from improvements or corrections to the source data until refreshed, and can often be a year or more out of date. Finally, it forces physicists to take time and attention away from physics and statistical issues to solve an IT problem. If the analysis can be performed without this skim, so much the better.
+However, producing such a skim can take a long time--- weeks or months before seeing the first plot--- and is fraught with tradeoffs. Excluding important events or (more often) important particle attributes can be costly, and including unnecessary data only makes the process take longer and use more disk. Moreover, the copy uses extra resources (disk and processing), which will only get tighter as data volumes outpace computing budgets, and it can effectively ``price out'' small analysis groups. Since it is a distinct copy, it does not benefit from improvements or corrections to the source data until refreshed, and can often be a year or more out of date. Finally, it forces physicists to take time and attention away from physics and statistical issues to solve an IT problem. If the analysis can be performed without this skim, so much the better.
 
-Real-time analysis on primary datasets is possible, and has been demonstrated in industry, usually as large, distributed databases used internally by a company's data analytics team. These systems are built from Apache Drill, Impala, Kudu, Hawk, or Dremel and tuned to provide SQL access to petabytes of data in seconds. Unlike Hadoop and Spark, which are optimized for high throughput, these systems are optimized for low latency, and they use indexes and query planning to avoid churning through all data with every request.
+Real-time analysis on primary datasets is possible, and has been demonstrated in industry, usually in the form of large, distributed databases used internally by a company's data analytics team. These systems are built from Apache Drill, Impala, Kudu, Hawk, or Dremel and tuned to provide SQL access to petabytes of data in seconds. Unlike Hadoop and Spark, which are optimized for high throughput, these systems are optimized for low latency, and they use database-style indexes and query planning to avoid churning through all data with every request.
 
-We can learn from these systems, adopting their techniques to provide similar access to HEP data, but there are some important differences between industry needs and HEP needs. Physics analyses are both simpler and more complex than a data scientist's analysis: it is simpler in that HEP does not require any all-to-all processing, such as transposing a table of customer purchases to product correlations to make recommendations--- all of the information that is needed to process one physics event is contained in that event or auxiliary tables. It is not necessary to examine all other events to understand one event. However, physics analyses are more complex in the depth of processing applied to that one event, examining many combinations of particles, searching for correlations. To help with the bookkeeping, physicists are inclined to think in terms of objects, iterating over collections of particle objects, rather than exploding and aggregating tables as in SQL.
+We can learn from these systems, adopting their techniques to provide similar access to HEP data, but there are some important differences between industry needs and HEP needs. A physicist's analysis is both simpler and more complex than a data scientist's analysis: it is simpler in that HEP does not require all-to-all processing, such as transposing a table of customer purchases to make product recommendations--- all of the information that is needed to process one physics event is contained in that event or small auxiliary tables, not all the other events. Once collected, a HEP dataset is immutable--- new events do not accumulate while the physicist is analyzing it. However, physics analyses are more complex in the depth of processing applied to that one event, examining many combinations of particles, searching for relationships. To help with the bookkeeping, physicists are inclined to think in terms of objects, iterating over collections of particle objects, rather than exploding and aggregating tables as in SQL.
 
-Because of the differences, we do not expect an off-the-shelf database to solve our problem, but we can adapt established techniques to work for HEP.
+Because of the differences, we do not expect an off-the-shelf database to solve our problem directly, but we can adapt established techniques to work for HEP.
 
 \section{Optimizing for ``query sized'' payloads}
 
+An analysis query is the smallest unit of exploratory analysis, in which the physicist asks one question, such as ``What is the distribution of muon $\eta$ for the second-highest $p_T$ muon in each event, subject to track-fit $\chi^2$ constraints?'' The conditions may be very complex, involving mass calculations, vertex fits, generated/reconstructed particle matching, computed with deeply nested loops and external function calls, but it is a request for one plot. The request and the plot are small enough to be transmitted through a slow network, and the data processing touches at most a dozen particle attributes out of thousands. Even a petabyte-sized dataset would only need to yield a terabyte of data, distributed among hundreds of workers, to service this request.
+
+\begin{table}
+\caption{\label{tab:10k} Rate of processing a ``query sized'' payload: filling one histogram of jet $p_T$ for all jets in a $t\bar{t}$ sample, illustrating the orders of magnitude lost to providing a full framework for heavy event processing (all single-threaded).}
+
+\vspace{0.25 cm}
+\begin{center}
+\begin{tabular}{r l}
+0.018~MHz & full framework (CMSSW, single-threaded C++) \\
+0.029~MHz & load all 95 jet branches in ROOT \\
+2.8~MHz & load jet $p_T$ branch (and no others) in ROOT \\
+12~MHz & allocate C++ objects on heap, fill, delete \\
+31~MHz & allocate C++ objects on stack, fill histogram \\
+250~MHz & minimal ``for'' loop in memory (single-threaded C)
+\end{tabular}
+\end{center}
+\end{table}
+
+HEP frameworks are not designed for this style of data access. Table~\ref{tab:10k} shows how four orders of magnitude in processing rate are lost to provide all the services of a full event framework (CMSSW in this example). These include creating full C++ particle objects with all attributes loaded, allocated randomly on the heap for convenient memory management, compared to a sequential, contiguous, and possibly vectorized histogram fill over a simple array. These services are essential for ``heavy'' processing tasks like event reconstruction, which touch most attributes of each particle, but are inappropriate for ``query sized'' tasks like filling a histogram. Private skims strip most of this away for lightweight processing in a physicist's personal analysis environment; there is no reason a lightweight framework could not also be provided centrally.
+
+Similar to low-latency databases used in industry, ROOT stores objects in an ``exploded'' form (called ``splitting'' in ROOT), with all values of each attribute in a separate array. This is even possible for hierarchically nested data, containing arbitrary length lists of objects, though multiple arrays with different lengths are required to encode it. This allows ROOT to only read attributes required for the analysis function--- such as a terabyte of a petabyte dataset.
+
+However, databases like Apache Drill go one step further by leaving the data in their exploded form during processing, without materializing rows as runtime objects\cite{drill}. Selective reading accounts for the first two orders of magnitude in Table~\ref{tab:10k}, while eliminating object materialization accounts for most of the last two by skipping memory allocation, non-sequential memory scans, and permitting compiler optimizations like loop vectorization.
+
+To permit this kind of access for ROOT data, Brian Bockelman and Zhe Zhang added a method to ROOT I/O that skips the {\tt GetEntry} (event materialization) process\cite{bulkio}. Query sized calculations on the resulting arrays (computing momentum magnitudes from components) run 5~times faster than a streamlined {\tt GetEntry} loop and 10~times faster than {\tt TTree::Draw} or {\tt TTreeReader} for uncompressed or LZ4-compressed input data.
+
 \section{Code transformation and compilation}
+
+For interactive analysis, it must be possible to define analysis functions at runtime and then compile them to run at full speed on arrays. Drill converts SQL to Java bytecode\cite{drill}, while Brian and Zhe's test cases use Numba to JIT-compile Python\cite{bulkio}. What these tools lack is a mechanism to convert a physicist's object oriented view of the data into array operations. Below, I will describe how we can do this and how the transformed code performs.
+
+\begin{table}
+\caption{\label{tab:exploding} Illustration of exploding nested, hierarchical objects. The data below are logically conceived as a list of lists of character-integer objects, but stored in memory as four flat arrays describing the structure of the outer list, the inner list, the 1$^{\mbox{\scriptsize st}}$ and 2$^{\mbox{\scriptsize nd}}$ attributes.}
+
+\begin{center}
+\begin{tabular}{r l}
+logical data & {\tt\small \textcolor{white}{[}\textcolor{blue}{[}\textcolor{violet}{[}(\textcolor{darkorange}{a},\textcolor{darkgreen}{1}), (\textcolor{darkorange}{b},\textcolor{darkgreen}{2}), (\textcolor{darkorange}{c},\textcolor{darkgreen}{3}), (\textcolor{darkorange}{d},\textcolor{darkgreen}{4})\textcolor{violet}{]}, \textcolor{violet}{[]}, \textcolor{violet}{[}(\textcolor{darkorange}{e},\textcolor{darkgreen}{5}), (\textcolor{darkorange}{f},\textcolor{darkgreen}{6})\textcolor{violet}{]}\textcolor{blue}{]}, \textcolor{blue}{[]}, \textcolor{blue}{[}\textcolor{violet}{[}(\textcolor{darkorange}{g},\textcolor{darkgreen}{7})\textcolor{violet}{]}\textcolor{blue}{]}\ \textcolor{white}{]}} \\\hline
+outer offsets & {\tt\small \textcolor{blue}{[0,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 3,\ \ 3,\ \ \ \ \ \ \ 4]}} \\
+inner offsets & {\tt\small \textcolor{violet}{[\ 0,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 4,\ \ 4,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 6,\ \ \ \ \ \ 7]}} \\
+1$^{\mbox{\scriptsize st}}$ attribute & {\tt\small \textcolor{darkorange}{[\ \ \ a,\ \ \ \ \ b,\ \ \ \ \ c,\ \ \ \ \ d,\ \ \ \ \ \ \ \ \ \ \ e,\ \ \ \ \ f,\ \ \ \ \ \ \ \ \ \ \ \ \ g\ \ \ \ \ \ ]}} \\
+2$^{\mbox{\scriptsize nd}}$ attribute & {\tt\small \textcolor{darkgreen}{[\ \ \ \ \ 1,\ \ \ \ \ 2,\ \ \ \ \ 3,\ \ \ \ \ 4,\ \ \ \ \ \ \ \ \ \ \ 5,\ \ \ \ \ 6,\ \ \ \ \ \ \ \ \ \ \ \ \ 7\ \ \ \ ]}}
+\end{tabular}
+\end{center}
+\end{table}
+
+Given the exploded data shown in Table~\ref{tab:exploding} and user code such as
+\begin{center}
+\begin{minipage}{0.7\linewidth}
+\begin{minted}{python}
+for outerlist in dataset:
+   for innerlist in outerlist:
+      for pair in innerlist:
+         compute(pair.first, pair.second)
+\end{minted}
+\end{minipage}
+\end{center}
+we want to convert it to a form that doesn't reference ``{\tt dataset},'' ``{\tt outerlist},'' ``{\tt innerlist},'' or ``{\tt pair}'' as objects, instead deferring to ``{\tt outeroffsets},'' ``{\tt inneroffsets},'' ``{\tt first}'' and ``{\tt second},'' where the data are stored as arrays.
+
+Such a transformation can be performed algorithmically on the user code's Abstract Syntax Tree (AST), converting the above into
+\begin{center}
+\begin{minipage}{0.7\linewidth}
+\begin{minted}{c}
+for (i = 0;  i < 3;  i++)
+   for (j = outeroffsets[i];  j < outeroffsets[i+1];  j++)
+      for (k = inneroffsets[j];  k < inneroffsets[j+1];  k++)
+         compute(first[k], second[k]);
+\end{minted}
+\end{minipage}
+\end{center}
+by replacing each ``{\tt outerlist}'' AST node with its corresponding ``{\tt outeroffsets[i]}'' and each ``{\tt pair.first}'' with its corresponding ``{\tt first[k]}.'' The first transformation rule eliminates references to list objects and the second eliminates references to record objects.
+
+This transformation is a type-inferring compilation pass, in which the types of dataset substructures must be propagated through the code, including assignments to new variables, and syntactic structures such as ``for'' loops have special transformation rules. Functions such as ``len'' (requesting the length of a list) must be overloaded as well (e.g.\ ``{\tt offsets[j+1] - offsets[j]}'').
+
+In special cases such as this one, we can even convert the above into
+\begin{center}
+\begin{minipage}{0.7\linewidth}
+\begin{minted}{c}
+for (k = 0;  k < inner[outer[3]];  k++)
+   compute(first[k], second[k]);
+\end{minted}
+\end{minipage}
+\end{center}
+by recognizing that the outer and inner loops are total and sequential. Thus, when the transformed function is passed to a bytecode compiler such as Numba or Clang, the non-nested ``for'' loop may be more highly optimized, possibly vectorized (depending on ``{\tt compute}''). This code transformation technique is discussed in more detail in\cite{ieee}.
+
+\begin{figure}
+\includegraphics[width=0.47\linewidth]{root-and-plur.pdf} \hfill
+\includegraphics[width=0.47\linewidth]{physical-media.pdf}
+
+\caption{\label{fig:codetrans} Processing rate of four analysis functions (Table~\ref{tab:code}) implemented in C++ with {\tt GetEntry} and our Python code transformation/compilation. ``ROOT full dataset'' loads all particle attributes, including unnecessary ones, ``selective on full'' uses selective reading ({\tt SetBranchStatus}), ``slim dataset'' uses a specially preselected input sample, ``Code transformation on full ROOT dataset'' uses Brian and Zhe's array extraction and our code transformation. Though uncompressed in warm cache, ROOT file reading is still the bottleneck; transformed code on raw arrays cached in memory is several times faster (all single-threaded).}
+\end{figure}
+
+The performance of the transformed code was studied with a simulated Drell-Yan dataset containing 5.4~million collisions in the CMS detector. Calculations were performed in single-threaded processes on a {\tt i2.xlarge} Amazon Web Services (AWS) instance, files were read from warmed cache, and the contents were uncompressed. Results are presented in Figure~\ref{fig:codetrans}. 
+
+\begin{table}
+\caption{\label{tab:code} Analysis functions tested in Figure~\ref{fig:codetrans}: ``max $p_T$'' is a per-event aggregation, ``eta of best'' adds the complication of maximizing one attribute while plotting another, ``mass of pairs'' iterates over distinct pairs of particles per event, computing an essential HEP function, and ``$p_T$ sum of pairs'' has the same loop structure without the expensive $\cosh$ and $\cos$ calls.}
+
+\begin{center}
+\begin{tabular}{p{0.23\linewidth} p{0.25\linewidth} p{0.25\linewidth} p{0.23\linewidth}}
+\underline{{\small\bf max p$_{\mbox{\tiny T}}$}}
+%% \begin{minted}{python}
+%% maximum = 0.0
+%% for muon in event.Muon:
+%%   if muon.pt > maximum:
+%%     maximum = muon.pt
+%% fill_histogram(maximum)
+%% \end{minted}
+{\scriptsize \input{minted-2.tex}} &
+\underline{{\small\bf eta of best by p$_{\mbox{\tiny T}}$}}
+%% \begin{minted}{python}
+%% maximum = 0.0
+%% best = None
+%% for muon in event.muons:
+%%   if muon.pt > maximum:
+%%     maximum = muon.pt
+%%     best = muon
+%% if best is not None:
+%%   fill_histogram(best.eta)
+%% \end{minted}
+{\scriptsize \input{minted-4.tex}} &
+\underline{{\small\bf mass of pairs}}
+%% \begin{minted}{python}
+%% n = len(event.muons)
+%% for i in range(n):
+%%   for j in range(i+1, n):
+%%     m1 = event.muons[i]
+%%     m2 = event.muons[j]
+%%     mass = sqrt(
+%%       2*m1.pt*m2.pt*(
+%%       cosh(m1.eta - m2.eta) -
+%%       cos(m1.phi - m2.phi)))
+%%     fill_histogram(mass)
+%% \end{minted}
+{\scriptsize \input{minted-6.tex}} &
+\underline{{\small\bf p$_{\mbox{\tiny T}}$ sum of pairs}}
+%% \begin{minted}{python}
+%% n = len(event.muons)
+%% for i in range(n):
+%%   for j in range(i+1, n):
+%%     m1 = event.muons[i]
+%%     m2 = event.muons[j]
+%%     s = m1.pt + m2.pt
+%%     fill_histogram(s)
+%% \end{minted}
+{\scriptsize \input{minted-8.tex}}
+\end{tabular}
+\end{center}
+\end{table}
 
 \section{Distributed processing with third-party tools}
 
-\section{Advanced query language}
+
+
+
+
 
 \section{Standalone pieces and the big picture}
 
+\section*{References}
+\begin{thebibliography}{9}
+
+\bibitem{drill} Apache Drill architecture: \url{https://drill.apache.org/architecture/}
+
+\bibitem{bulkio} BulkIO reference; another ACAT paper: \url{https://indico.cern.ch/event/567550/contributions/2627167/}
+
+\bibitem{ieee} accepted IEEE Big Data paper; don't have a non-arXiv reference yet: \url{https://arxiv.org/abs/1708.08319}
+
+\end{thebibliography}
 
 \end{document}
