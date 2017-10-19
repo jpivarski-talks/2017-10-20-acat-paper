@@ -133,56 +133,63 @@ The performance of the transformed code was studied with a simulated Drell-Yan d
 \caption{\label{tab:code} Analysis functions tested in Figure~\ref{fig:codetrans}: ``max $p_T$'' is a per-event aggregation, ``eta of best'' adds the complication of maximizing one attribute while plotting another, ``mass of pairs'' iterates over distinct pairs of particles per event, computing an essential HEP function, and ``$p_T$ sum of pairs'' has the same loop structure without the expensive $\cosh$ and $\cos$ calls.}
 
 \begin{center}
-\begin{tabular}{p{0.23\linewidth} p{0.25\linewidth} p{0.25\linewidth} p{0.23\linewidth}}
+\begin{tabular}{p{0.21\linewidth} p{0.22\linewidth} p{0.24\linewidth} p{0.21\linewidth}}
 \underline{{\small\bf max p$_{\mbox{\tiny T}}$}}
-%% \begin{minted}{python}
-%% maximum = 0.0
-%% for muon in event.Muon:
-%%   if muon.pt > maximum:
-%%     maximum = muon.pt
-%% fill_histogram(maximum)
-%% \end{minted}
-{\scriptsize \input{minted-2.tex}} &
+\begin{minipage}{\linewidth}\scriptsize
+\begin{minted}{python}
+maximum = 0.0
+for muon in event.Muon:
+  if muon.pt > maximum:
+    maximum = muon.pt
+fill_histogram(maximum)
+\end{minted}
+\end{minipage} &
+%% {\scriptsize \input{minted-2.tex}} &
 \underline{{\small\bf eta of best by p$_{\mbox{\tiny T}}$}}
-%% \begin{minted}{python}
-%% maximum = 0.0
-%% best = None
-%% for muon in event.muons:
-%%   if muon.pt > maximum:
-%%     maximum = muon.pt
-%%     best = muon
-%% if best is not None:
-%%   fill_histogram(best.eta)
-%% \end{minted}
-{\scriptsize \input{minted-4.tex}} &
+\begin{minipage}{\linewidth}\scriptsize
+\begin{minted}{python}
+maximum = 0.0
+best = None
+for muon in event.muons:
+  if muon.pt > maximum:
+    maximum = muon.pt
+    best = muon
+if best is not None:
+  fill_histogram(best.eta)
+\end{minted}
+\end{minipage} &
+%% {\scriptsize \input{minted-4.tex}} &
 \underline{{\small\bf mass of pairs}}
-%% \begin{minted}{python}
-%% n = len(event.muons)
-%% for i in range(n):
-%%   for j in range(i+1, n):
-%%     m1 = event.muons[i]
-%%     m2 = event.muons[j]
-%%     mass = sqrt(
-%%       2*m1.pt*m2.pt*(
-%%       cosh(m1.eta - m2.eta) -
-%%       cos(m1.phi - m2.phi)))
-%%     fill_histogram(mass)
-%% \end{minted}
-{\scriptsize \input{minted-6.tex}} &
+\begin{minipage}{\linewidth}\scriptsize
+\begin{minted}{python}
+n = len(event.muons)
+for i in range(n):
+  for j in range(i+1, n):
+    m1 = event.muons[i]
+    m2 = event.muons[j]
+    mass = sqrt(
+      2*m1.pt*m2.pt*(
+      cosh(m1.eta - m2.eta) -
+      cos(m1.phi - m2.phi)))
+    fill_histogram(mass)
+\end{minted}
+\end{minipage} &
+%% {\scriptsize \input{minted-6.tex}} &
 \underline{{\small\bf p$_{\mbox{\tiny T}}$ sum of pairs}}
-%% \begin{minted}{python}
-%% n = len(event.muons)
-%% for i in range(n):
-%%   for j in range(i+1, n):
-%%     m1 = event.muons[i]
-%%     m2 = event.muons[j]
-%%     s = m1.pt + m2.pt
-%%     fill_histogram(s)
-%% \end{minted}
-{\scriptsize \input{minted-8.tex}}
+\begin{minipage}{\linewidth}\scriptsize
+\begin{minted}{python}
+n = len(event.muons)
+for i in range(n):
+  for j in range(i+1, n):
+    m1 = event.muons[i]
+    m2 = event.muons[j]
+    s = m1.pt + m2.pt
+    fill_histogram(s)
+\end{minted}
+\end{minipage}
+%% {\scriptsize \input{minted-8.tex}}
 \end{tabular}
 \end{center}
-\vspace{-0.5 cm}
 \end{table}
 
 \section{Distributed processing with cache}
@@ -191,7 +198,7 @@ The optimizations discussed above focus on increasing single-threaded throughput
 
 HEP analysis functions are embarrasingly parallel, which would scale linearly if data can be delivered to them efficiently. However, this depends critically on caching, since data processing is considerably faster than disk access, and caching is local. An input dataset in memory on one machine is only useful if subsequent jobs requiring that input are sent to the same machine.
 
-\begin{figure}
+\begin{figure}[b]
 \begin{center}
 \includegraphics[width=0.7\linewidth]{distributed-layout.png}
 \end{center}
