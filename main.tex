@@ -51,7 +51,7 @@ An analysis query is the smallest unit of exploratory analysis, in which the phy
 250~MHz & minimal ``for'' loop in memory (single-threaded C)
 \end{tabular}
 \end{center}
-\vspace{-0.5 cm}
+\vspace{-0.75 cm}
 \end{table}
 
 HEP frameworks are not designed for this style of data access. Table~\ref{tab:10k} shows how four orders of magnitude in processing rate are lost to provide all the services of a full event framework (CMSSW in this example). These include creating full C++ particle objects with all attributes loaded, allocated randomly on the heap for convenient memory management, compared to a sequential, contiguous, and possibly vectorized histogram fill over a simple array. These services are essential for ``heavy'' processing tasks like event reconstruction, which touch most attributes of each particle, but are inappropriate for ``query sized'' tasks like filling a histogram. Private skims strip most of this away for lightweight processing in a physicist's personal analysis environment; there is no reason a lightweight framework could not also be provided centrally.
@@ -78,7 +78,7 @@ inner offsets & {\tt\small \textcolor{violet}{[\ 0,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \
 2$^{\mbox{\scriptsize nd}}$ attribute & {\tt\small \textcolor{darkgreen}{[\ \ \ \ \ 1,\ \ \ \ \ 2,\ \ \ \ \ 3,\ \ \ \ \ 4,\ \ \ \ \ \ \ \ \ \ \ 5,\ \ \ \ \ 6,\ \ \ \ \ \ \ \ \ \ \ \ \ 7\ \ \ \ ]}}
 \end{tabular}
 \end{center}
-\vspace{-0.5 cm}
+\vspace{-0.75 cm}
 \end{table}
 
 Given the exploded data shown in Table~\ref{tab:exploding} and user code such as
@@ -190,6 +190,7 @@ for i in range(n):
 %% {\scriptsize \input{minted-8.tex}}
 \end{tabular}
 \end{center}
+\vspace{-0.75 cm}
 \end{table}
 
 \section{Distributed processing with cache}
@@ -222,36 +223,14 @@ The following software is either available now or soon.
 \begin{itemize}
 \item Array access to ROOT data, via Numpy and {\tt TTreeReaderFast}, is scheduled for {\bf ROOT 6.14}\cite{root}. Users willing to compile ROOT may try the feature early using a custom fork\cite{root-brian}.
 \item The same interface is available now in a Python package called {\bf uproot}\cite{uproot}.
-\item The code transformation techniques described here are implemented in {\bf Arrowed}\cite{arrowed}, which accelerates functions on data in Apache Arrow\cite{arrow} format, with on-the-fly conversion from ROOT to Arrow. The purpose of targeting Arrow rather than ROOT directly is to attract contributions from Big Data projects that rely on Arrow.
+\item The code transformation techniques described here are implemented in {\bf OAMap}\cite{oamap}, which accelerates functions on data in Apache Arrow\cite{arrow} format, with on-the-fly conversion from ROOT to Arrow. The purpose of targeting Arrow rather than ROOT directly is to attract contributions from Big Data projects that rely on Arrow.
 \end{itemize}
 
 Readers are encouraged to try out these packages and report any usability issues, as this will guide the process of developing the query system.
 
 \section*{References}
-(References need to be properly formatted, but some of these references are not known yet because \cite{bulkio} is another ACAT paper and the arXiv link \cite{ieee} will be superseded.)
 
-\begin{thebibliography}{9}
-
-\bibitem{drill} Apache Drill architecture: \url{https://drill.apache.org/architecture/}
-
-\bibitem{bulkio} BulkIO reference: \url{https://indico.cern.ch/event/567550/contributions/2627167/}
-
-\bibitem{ieee} accepted IEEE Big Data paper; don't have a non-arXiv reference yet: \url{https://arxiv.org/abs/1708.08319}
-
-\bibitem{histogrammar} Histogrammar \url{https://zenodo.org/record/61418}
-
-\bibitem{thanat} \url{https://github.com/JThanat/femto-mesos}
-
-\bibitem{root} \url{https://root.cern/}
-
-\bibitem{root-brian} \url{http://github.com/bbockelm/root/tree/root-bulkapi-fastread-v2}
-
-\bibitem{uproot} \url{https://github.com/scikit-hep/uproot}
-
-\bibitem{arrowed} \url{https://github.com/diana-hep/arrowed}
-
-\bibitem{arrow} \url{https://arrow.apache.org/}
-
-\end{thebibliography}
+\bibliographystyle{IEEEtran}
+\bibliography{mybibliography}
 
 \end{document}
