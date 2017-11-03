@@ -2,7 +2,105 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{xcolor}
-\usepackage{minted}
+% \usepackage{minted}
+\usepackage{fancyvrb}
+\usepackage{color}
+
+\makeatletter
+\def\PY@reset{\let\PY@it=\relax \let\PY@bf=\relax%
+    \let\PY@ul=\relax \let\PY@tc=\relax%
+    \let\PY@bc=\relax \let\PY@ff=\relax}
+\def\PY@tok#1{\csname PY@tok@#1\endcsname}
+\def\PY@toks#1+{\ifx\relax#1\empty\else%
+    \PY@tok{#1}\expandafter\PY@toks\fi}
+\def\PY@do#1{\PY@bc{\PY@tc{\PY@ul{%
+    \PY@it{\PY@bf{\PY@ff{#1}}}}}}}
+\def\PY#1#2{\PY@reset\PY@toks#1+\relax+\PY@do{#2}}
+
+\expandafter\def\csname PY@tok@gd\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.63,0.00,0.00}{##1}}}
+\expandafter\def\csname PY@tok@gu\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.50,0.00,0.50}{##1}}}
+\expandafter\def\csname PY@tok@gt\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.27,0.87}{##1}}}
+\expandafter\def\csname PY@tok@gs\endcsname{\let\PY@bf=\textbf}
+\expandafter\def\csname PY@tok@gr\endcsname{\def\PY@tc##1{\textcolor[rgb]{1.00,0.00,0.00}{##1}}}
+\expandafter\def\csname PY@tok@cm\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+\expandafter\def\csname PY@tok@vg\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\expandafter\def\csname PY@tok@vi\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\expandafter\def\csname PY@tok@mh\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@cs\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+\expandafter\def\csname PY@tok@ge\endcsname{\let\PY@it=\textit}
+\expandafter\def\csname PY@tok@vc\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\expandafter\def\csname PY@tok@il\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@go\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.53,0.53,0.53}{##1}}}
+\expandafter\def\csname PY@tok@cp\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.74,0.48,0.00}{##1}}}
+\expandafter\def\csname PY@tok@gi\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.63,0.00}{##1}}}
+\expandafter\def\csname PY@tok@gh\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,0.50}{##1}}}
+\expandafter\def\csname PY@tok@ni\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.60,0.60,0.60}{##1}}}
+\expandafter\def\csname PY@tok@nl\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.63,0.63,0.00}{##1}}}
+\expandafter\def\csname PY@tok@nn\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\expandafter\def\csname PY@tok@no\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.53,0.00,0.00}{##1}}}
+\expandafter\def\csname PY@tok@na\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.49,0.56,0.16}{##1}}}
+\expandafter\def\csname PY@tok@nb\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@nc\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\expandafter\def\csname PY@tok@nd\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.67,0.13,1.00}{##1}}}
+\expandafter\def\csname PY@tok@ne\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.82,0.25,0.23}{##1}}}
+\expandafter\def\csname PY@tok@nf\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,1.00}{##1}}}
+\expandafter\def\csname PY@tok@si\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.73,0.40,0.53}{##1}}}
+\expandafter\def\csname PY@tok@s2\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@nt\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@nv\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\expandafter\def\csname PY@tok@s1\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@ch\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+\expandafter\def\csname PY@tok@m\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@gp\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.00,0.50}{##1}}}
+\expandafter\def\csname PY@tok@sh\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@ow\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.67,0.13,1.00}{##1}}}
+\expandafter\def\csname PY@tok@sx\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@bp\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@c1\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+\expandafter\def\csname PY@tok@o\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@kc\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@c\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+\expandafter\def\csname PY@tok@mf\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@err\endcsname{\def\PY@bc##1{\setlength{\fboxsep}{0pt}\fcolorbox[rgb]{1.00,0.00,0.00}{1,1,1}{\strut ##1}}}
+\expandafter\def\csname PY@tok@mb\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@ss\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.10,0.09,0.49}{##1}}}
+\expandafter\def\csname PY@tok@sr\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.40,0.53}{##1}}}
+\expandafter\def\csname PY@tok@mo\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@kd\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@mi\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.40,0.40,0.40}{##1}}}
+\expandafter\def\csname PY@tok@kn\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@cpf\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.25,0.50,0.50}{##1}}}
+\expandafter\def\csname PY@tok@kr\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@s\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@kp\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@w\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.73,0.73}{##1}}}
+\expandafter\def\csname PY@tok@kt\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.69,0.00,0.25}{##1}}}
+\expandafter\def\csname PY@tok@sc\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@sb\endcsname{\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+\expandafter\def\csname PY@tok@k\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.00,0.50,0.00}{##1}}}
+\expandafter\def\csname PY@tok@se\endcsname{\let\PY@bf=\textbf\def\PY@tc##1{\textcolor[rgb]{0.73,0.40,0.13}{##1}}}
+\expandafter\def\csname PY@tok@sd\endcsname{\let\PY@it=\textit\def\PY@tc##1{\textcolor[rgb]{0.73,0.13,0.13}{##1}}}
+
+\def\PYZbs{\char`\\}
+\def\PYZus{\char`\_}
+\def\PYZob{\char`\{}
+\def\PYZcb{\char`\}}
+\def\PYZca{\char`\^}
+\def\PYZam{\char`\&}
+\def\PYZlt{\char`\<}
+\def\PYZgt{\char`\>}
+\def\PYZsh{\char`\#}
+\def\PYZpc{\char`\%}
+\def\PYZdl{\char`\$}
+\def\PYZhy{\char`\-}
+\def\PYZsq{\char`\'}
+\def\PYZdq{\char`\"}
+\def\PYZti{\char`\~}
+% for compatibility with earlier versions
+\def\PYZat{@}
+\def\PYZlb{[}
+\def\PYZrb{]}
+\makeatother
 
 \xdefinecolor{darkorange}{rgb}{0.8,0.5,0}
 \definecolor{darkgreen}{rgb}{0,0.6,0}
@@ -84,12 +182,12 @@ inner offsets & {\tt\small \textcolor{violet}{[\ 0,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \
 Given the exploded data shown in Table~\ref{tab:exploding} and user code such as
 \begin{center}
 \begin{minipage}{0.7\linewidth}
-\begin{minted}{python}
+\begin{verbatim}
 for outerlist in dataset:
    for innerlist in outerlist:
       for pair in innerlist:
          compute(pair.first, pair.second)
-\end{minted}
+\end{verbatim}
 \end{minipage}
 \end{center}
 we want to convert it to a form that doesn't reference ``{\tt dataset},'' ``{\tt outerlist},'' ``{\tt innerlist},'' or ``{\tt pair}'' as objects, instead deferring to ``{\tt outeroffsets},'' ``{\tt inneroffsets},'' ``{\tt first}'' and ``{\tt second},'' where the data are stored as arrays.
@@ -97,12 +195,12 @@ we want to convert it to a form that doesn't reference ``{\tt dataset},'' ``{\tt
 Such a transformation can be performed algorithmically on the user code's Abstract Syntax Tree (AST), converting the above into
 \begin{center}
 \begin{minipage}{0.7\linewidth}
-\begin{minted}{c}
+\begin{verbatim}
 for (i = 0;  i < 3;  i++)
    for (j = outeroffsets[i];  j < outeroffsets[i+1];  j++)
       for (k = inneroffsets[j];  k < inneroffsets[j+1];  k++)
          compute(first[k], second[k]);
-\end{minted}
+\end{verbatim}
 \end{minipage}
 \end{center}
 by replacing each ``{\tt outerlist}'' AST node with its corresponding ``{\tt outeroffsets[i]}'' and each ``{\tt pair.first}'' with its corresponding ``{\tt first[k]}.'' The first transformation rule eliminates references to list objects and the second eliminates references to record objects.
@@ -112,10 +210,10 @@ This transformation is like a type-inferring compilation pass, in which the type
 In special cases such as this one, we can even convert the above into
 \begin{center}
 \begin{minipage}{0.7\linewidth}
-\begin{minted}{c}
+\begin{verbatim}
 for (k = 0;  k < inner[outer[3]];  k++)
    compute(first[k], second[k]);
-\end{minted}
+\end{verbatim}
 \end{minipage}
 \end{center}
 by recognizing that the outer and inner loops are total and sequential. Thus, when the transformed function is passed to a bytecode compiler such as Numba or Clang, the non-nested ``for'' loop may be more highly optimized, possibly vectorized (depending on ``{\tt compute}''). This code transformation technique is discussed in more detail in\cite{ieee}.
@@ -136,58 +234,58 @@ The performance of the transformed code was studied with a simulated Drell-Yan d
 \begin{tabular}{p{0.21\linewidth} p{0.22\linewidth} p{0.24\linewidth} p{0.21\linewidth}}
 \underline{{\small\bf max p$_{\mbox{\tiny T}}$}}
 \begin{minipage}{\linewidth}\scriptsize
-\begin{minted}{python}
-maximum = 0.0
-for muon in event.Muon:
-  if muon.pt > maximum:
-    maximum = muon.pt
-fill_histogram(maximum)
-\end{minted}
+%% \begin{minted}{python}
+%% maximum = 0.0
+%% for muon in event.Muon:
+%%   if muon.pt > maximum:
+%%     maximum = muon.pt
+%% fill_histogram(maximum)
+%% \end{minted}
+\input{minted-2.tex}
 \end{minipage} &
-%% {\scriptsize \input{minted-2.tex}} &
 \underline{{\small\bf eta of best by p$_{\mbox{\tiny T}}$}}
 \begin{minipage}{\linewidth}\scriptsize
-\begin{minted}{python}
-maximum = 0.0
-best = None
-for muon in event.muons:
-  if muon.pt > maximum:
-    maximum = muon.pt
-    best = muon
-if best is not None:
-  fill_histogram(best.eta)
-\end{minted}
+%% \begin{minted}{python}
+%% maximum = 0.0
+%% best = None
+%% for muon in event.muons:
+%%   if muon.pt > maximum:
+%%     maximum = muon.pt
+%%     best = muon
+%% if best is not None:
+%%   fill_histogram(best.eta)
+%% \end{minted}
+\input{minted-4.tex}
 \end{minipage} &
-%% {\scriptsize \input{minted-4.tex}} &
 \underline{{\small\bf mass of pairs}}
 \begin{minipage}{\linewidth}\scriptsize
-\begin{minted}{python}
-n = len(event.muons)
-for i in range(n):
-  for j in range(i+1, n):
-    m1 = event.muons[i]
-    m2 = event.muons[j]
-    mass = sqrt(
-      2*m1.pt*m2.pt*(
-      cosh(m1.eta - m2.eta) -
-      cos(m1.phi - m2.phi)))
-    fill_histogram(mass)
-\end{minted}
+%% \begin{minted}{python}
+%% n = len(event.muons)
+%% for i in range(n):
+%%   for j in range(i+1, n):
+%%     m1 = event.muons[i]
+%%     m2 = event.muons[j]
+%%     mass = sqrt(
+%%       2*m1.pt*m2.pt*(
+%%       cosh(m1.eta - m2.eta) -
+%%       cos(m1.phi - m2.phi)))
+%%     fill_histogram(mass)
+%% \end{minted}
+\input{minted-6.tex}
 \end{minipage} &
-%% {\scriptsize \input{minted-6.tex}} &
 \underline{{\small\bf p$_{\mbox{\tiny T}}$ sum of pairs}}
 \begin{minipage}{\linewidth}\scriptsize
-\begin{minted}{python}
-n = len(event.muons)
-for i in range(n):
-  for j in range(i+1, n):
-    m1 = event.muons[i]
-    m2 = event.muons[j]
-    s = m1.pt + m2.pt
-    fill_histogram(s)
-\end{minted}
+%% \begin{minted}{python}
+%% n = len(event.muons)
+%% for i in range(n):
+%%   for j in range(i+1, n):
+%%     m1 = event.muons[i]
+%%     m2 = event.muons[j]
+%%     s = m1.pt + m2.pt
+%%     fill_histogram(s)
+%% \end{minted}
+\input{minted-8.tex}
 \end{minipage}
-%% {\scriptsize \input{minted-8.tex}}
 \end{tabular}
 \end{center}
 \vspace{-0.75 cm}
